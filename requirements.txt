@@ -1,0 +1,2 @@
+paho_mqtt
+APScheduler==3.0.0
