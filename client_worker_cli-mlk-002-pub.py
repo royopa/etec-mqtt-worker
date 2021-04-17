@@ -46,7 +46,7 @@ def insert(item_msg):
 
     # create session
     Session = sessionmaker()
-    SQLALCHEMY_DATABASE_URI = 'postgres://sviatuearxzboo:d8d975ade500b9435f8a2a9a7f4a3120cebee4131a76330c36df07b38582d3fd@ec2-52-7-115-250.compute-1.amazonaws.com:5432/d2ga1lst1t68n3'
+    SQLALCHEMY_DATABASE_URI = 'postgresql://sviatuearxzboo:d8d975ade500b9435f8a2a9a7f4a3120cebee4131a76330c36df07b38582d3fd@ec2-52-7-115-250.compute-1.amazonaws.com:5432/d2ga1lst1t68n3'
     engine = create_engine(SQLALCHEMY_DATABASE_URI, echo=False)
     Session.configure(bind=engine)
     session = Session()
