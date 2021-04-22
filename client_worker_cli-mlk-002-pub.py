@@ -49,6 +49,7 @@ def insert(item_msg):
     session = Session()
     session.add(mensagem)
     session.commit()
+    session.close()
 
 
 client = mqtt.Client()
