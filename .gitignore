@@ -5,3 +5,5 @@ staticfiles
 db.sqlite3
 getting-started/*
 mlogs/*
+nohup.out
+output.log
