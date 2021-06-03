@@ -3,10 +3,17 @@ import os
 from datetime import datetime
 
 import paho.mqtt.client as mqtt
+from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from Mensagem import Mensagem
+
+load_dotenv()  # take environment variables from .env.
+
+# cria lógica para salvar em base de dados apenas quando existe alteração
+topic_01_last_value = -99.99
+topic_02_last_value = -99.99
 
 
 def on_connect(client, userdata, flags, rc):
@@ -22,30 +29,59 @@ def on_subscribe(client, userdata, mid, granted_qos):
 
 
 def on_message(client, userdata, msg):
-    #print("  Mensagem recebida")
+    global topic_01_last_value
+    global topic_02_last_value
+
+    # pega a mensagem do tópico e faz o decode em utf-8
     m_decode = str(msg.payload.decode("utf-8", "ignore"))
     topic = msg.topic
 
-    # formata um dicionário, ara salvar no banco de dados
+    # formata um dicionário, para salvar no banco de dados
+    m_value = float(m_decode)
     item_msg = {
         'created_at': datetime.now(),
         'topic_name': topic,
-        'topic_value': float(m_decode)
+        'topic_value': m_value
     }
 
     print('  ', item_msg)
-    insert(item_msg)
+
+    # se não houve alteração na temperatura, não faz nada
+    if topic == "cli-mlk-002-pub/temperature":
+        print(
+            'Lendo tópico temperatura',
+            topic_01_last_value,
+            m_value,
+            'Inserir na base de dados?',
+            topic_01_last_value != m_value
+        )
+        if topic_01_last_value != m_value:
+            topic_01_last_value = m_value
+            # insere a informação na tabela do banco de dados
+            insert(item_msg)
+            return
+
+    # se não houve alteração na umidade, não faz nada
+    if topic == "cli-mlk-002-pub/humidity":
+        print(
+            'Lendo tópico umidade',
+            topic_02_last_value,
+            m_value,
+            'Inserir na base de dados?',
+            topic_02_last_value != m_value
+        )
+        if topic_02_last_value != m_value:
+            topic_02_last_value = m_value
+            # insere a informação na tabela do banco de dados
+            insert(item_msg)
+            return
 
 
 def insert(item_msg):
-    #print("  Mensagem será inserida na base de dados")
     mensagem = Mensagem(item_msg)
-
     # create session
     Session = sessionmaker()
-    SQLALCHEMY_DATABASE_URI = 'postgresql://sviatuearxzboo:d8d975ade500b9435f8a2a9a7f4a3120cebee4131a76330c36df07b38582d3fd@ec2-52-7-115-250.compute-1.amazonaws.com:5432/d2ga1lst1t68n3'
-    SQLALCHEMY_DATABASE_URI = 'postgresql://cbukkihhcpcspc:4932d8a498252be38837c547a2df964e4a60cfbcff6e10d345d6d423a8cee5d2@ec2-23-21-229-200.compute-1.amazonaws.com:5432/d7tpop55rlpik5'
-    engine = create_engine(SQLALCHEMY_DATABASE_URI, echo=False)
+    engine = create_engine(os.getenv('SQLALCHEMY_DATABASE_URI'), echo=False)
     Session.configure(bind=engine)
     session = Session()
     session.add(mensagem)
@@ -61,8 +97,7 @@ client.insert = insert
 
 
 # conecta ao mqtt
-host = "mqtt.eclipseprojects.io"
-client.connect(host, 1883, 60)
+client.connect(os.getenv('MQTT_HOST'), 1883, 60)
 
 # fica num loop infinito escutando a mensagem
 client.loop_forever()
